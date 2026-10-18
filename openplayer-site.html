@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenPlayer: a music player that lets the song lead</title>
+<meta name="description" content="OpenPlayer is a free Windows music player with synced lyrics, an equalizer, crossfade, a desktop widget and Discord presence.">
+<style>
+:root{--sea:#0d1a20;--tide:#1f4a57;--glass:#5aa6a0;--sand:#efe9dc;--dim:rgba(239,233,220,.64);--amber:#e3b04b;
+--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;--sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--sea);color:var(--sand);font:16px/1.6 var(--sans);overflow-x:hidden}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--sand);outline-offset:3px}
+.bg{position:fixed;inset:0;z-index:-1;background:
+ radial-gradient(50vmax 40vmax at 10% 0%,rgba(31,74,87,.95),transparent 70%),
+ radial-gradient(42vmax 36vmax at 95% 35%,rgba(90,166,160,.30),transparent 70%),
+ radial-gradient(55vmax 40vmax at 30% 105%,rgba(31,74,87,.7),transparent 70%),var(--sea)}
+.wrap{width:min(1120px,92vw);margin:0 auto}
+
+.glass{position:relative;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.04));
+ -webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);
+ border:1px solid rgba(255,255,255,.14);border-radius:18px;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.38),inset 0 -1px 0 rgba(255,255,255,.05),0 24px 60px rgba(0,0,0,.38)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+ background:radial-gradient(260px circle at var(--mx,30%) var(--my,0%),rgba(255,255,255,.17),transparent 62%)}
+
+header{position:sticky;top:14px;z-index:10;margin:14px auto 0;width:min(1120px,92vw);display:flex;align-items:center;justify-content:space-between;padding:9px 10px 9px 22px;border-radius:14px}
+.brand{font-family:var(--serif);font-style:italic;font-size:20px;text-decoration:none}
+nav{display:flex;align-items:center;gap:22px;font-size:15px}
+nav a{text-decoration:none;color:var(--dim)} nav a:hover{color:var(--sand)}
+.btn{display:inline-flex;align-items:center;padding:11px 20px;border-radius:10px;font:600 15px var(--sans);text-decoration:none;border:1px solid transparent;transition:background .2s}
+.btn.p{background:var(--sand);color:#10201f} .btn.p:hover{background:#fff}
+.btn.g{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2)} .btn.g:hover{background:rgba(255,255,255,.17)}
+nav .btn{padding:8px 16px}
+
+.hero{padding:84px 0 0}
+h1{font:500 clamp(44px,7.2vw,96px)/.98 var(--serif);letter-spacing:-.035em;margin:0 0 24px;max-width:13ch}
+.lead{font-size:19px;max-width:54ch;color:var(--dim);margin:0 0 32px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+
+/* app preview */
+.stage{position:relative;margin:70px auto 0;width:min(1120px,92vw)}
+.win{display:grid;grid-template-columns:180px 270px 1fr;gap:20px;padding:20px;min-height:500px;border-radius:22px}
+.side{background:rgba(255,255,255,.06);border-radius:14px;padding:14px 10px;font-size:14px;display:flex;flex-direction:column;gap:2px}
+.side b{font:italic 500 17px var(--serif);padding:2px 10px 12px}
+.side span{padding:8px 12px;border-radius:9px;color:var(--dim)}
+.side span.on{background:rgba(255,255,255,.16);color:var(--sand)}
+.side i{font-style:normal;font-size:12px;color:var(--dim);padding:16px 12px 4px}
+.card{align-self:center}
+.art{aspect-ratio:1;border-radius:10px;background:
+ radial-gradient(circle at 72% 28%,#f1cf8a 0 13%,transparent 14%),
+ repeating-linear-gradient(115deg,rgba(255,255,255,.07) 0 2px,transparent 2px 18px),
+ linear-gradient(160deg,#5aa6a0,#1f4a57 62%,#0d1a20);box-shadow:0 16px 34px rgba(0,0,0,.45)}
+.meta{padding:16px 2px 10px}
+.meta h3{margin:0;font:600 22px/1.2 var(--serif)} .meta p{margin:2px 0 0;color:var(--dim);font-size:14px}
+.bar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.bar u{flex:1;height:4px;border-radius:4px;background:rgba(255,255,255,.22);overflow:hidden;text-decoration:none}
+.bar u i{display:block;height:100%;width:32%;background:var(--sand)}
+.ctl{display:flex;justify-content:center;align-items:center;gap:22px;margin-top:14px}
+.ctl svg{width:22px;height:22px;fill:currentColor}
+.ctl .pl{width:52px;height:52px;border-radius:50%;background:var(--sand);color:#10201f;display:grid;place-items:center}
+.ctl .pl svg{width:24px;height:24px}
+.lyr{position:relative;overflow:hidden;min-height:460px;-webkit-mask-image:linear-gradient(transparent,#000 18%,#000 72%,transparent);mask-image:linear-gradient(transparent,#000 18%,#000 72%,transparent)}
+.lw{transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+.l{height:64px;display:flex;align-items:center;font:600 clamp(22px,2.6vw,32px)/1.15 var(--serif);letter-spacing:-.01em;
+ opacity:calc(.9 - min(var(--d,4),4)*.17);filter:blur(calc(min(var(--d,4),4)*1.1px));transition:opacity .5s,filter .5s}
+.l.on{opacity:1;filter:none}
+
+.floats{position:absolute;right:-16px;bottom:-70px;display:flex;align-items:flex-end;gap:18px}
+.wid{width:190px;aspect-ratio:1;border-radius:26px;overflow:hidden;position:relative;transform:rotate(2deg)}
+.wid .art{position:absolute;inset:0;border-radius:0;box-shadow:none}
+.wp{position:absolute;left:9px;right:9px;bottom:9px;padding:9px 12px 10px;border-radius:16px;opacity:0;transition:opacity .25s}
+.wid:hover .wp,.wid:focus-within .wp{opacity:1}
+.wp b{display:block;font:600 14px var(--serif)} .wp small{display:block;color:var(--dim);font-size:11px}
+.wp .ctl{gap:16px;margin-top:4px} .wp .ctl svg{width:16px;height:16px}
+.cap{position:absolute;left:0;right:0;top:-26px;text-align:center;font-size:12px;color:var(--dim)}
+.dc{width:290px;padding:14px 16px 16px;border-radius:16px;position:relative}
+.dc small{display:block;font-size:12px;color:var(--dim);margin-bottom:10px;font-weight:600}
+.dc .r{display:flex;gap:12px}
+.dc .art{width:70px;flex:none;aspect-ratio:1}
+.dc b{display:block;font-size:15px;line-height:1.25} .dc p{margin:1px 0 0;font-size:13px;color:var(--dim)}
+.dc .bar{margin-top:10px}
+
+/* sections */
+section{padding-top:140px}
+h2{font:500 clamp(32px,4.6vw,54px)/1.05 var(--serif);letter-spacing:-.025em;margin:0 0 14px;max-width:18ch}
+.sub{color:var(--dim);max-width:56ch;margin:0 0 36px}
+.feats{display:grid;grid-template-columns:repeat(3,1fr);padding:10px}
+.feats div{padding:26px 26px 28px;border-right:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)}
+.feats div:nth-child(3n){border-right:0} .feats div:nth-child(n+4){border-bottom:0}
+.feats h3{margin:0 0 6px;font:600 21px var(--serif)} .feats p{margin:0;color:var(--dim);font-size:15px}
+.dl{display:grid;grid-template-columns:1.25fr 1fr;gap:20px;align-items:stretch}
+.dl .glass{padding:30px}
+.dl h3{margin:0 0 6px;font:600 26px var(--serif)} .dl p{color:var(--dim);margin:0 0 22px;font-size:15px}
+.dl .big h3{font-size:32px}
+.fine{margin-top:18px;font-size:13px;color:var(--dim);max-width:70ch}
+footer{margin:120px auto 40px;font-size:13px;color:var(--dim)}
+
+@media (max-width:960px){
+ .win{grid-template-columns:1fr;min-height:0} .side{display:none} .lyr{min-height:340px}
+ .floats{position:static;margin-top:26px;flex-wrap:wrap;align-items:flex-start}
+ .wp{opacity:1} .cap{display:none}
+ .feats{grid-template-columns:1fr} .feats div{border-right:0!important;border-bottom:1px solid rgba(255,255,255,.1)!important} .feats div:last-child{border-bottom:0!important}
+ .dl{grid-template-columns:1fr} section{padding-top:96px} nav a:not(.btn){display:none}
+}
+@media (hover:none){.wp{opacity:1}}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+
+<header class="glass">
+  <a class="brand" href="#top">OpenPlayer</a>
+  <nav><a href="#features">Features</a><a href="#download">Download</a><a class="btn p" href="#download">Get OpenPlayer</a></nav>
+</header>
+
+<main id="top">
+<div class="wrap hero">
+  <h1>A music player that lets the song lead.</h1>
+  <p class="lead">OpenPlayer is a free desktop player for Windows. Lyrics move with the music, the equalizer tames harsh bass, and songs blend into each other. Play your own files or search YouTube Music.</p>
+  <div class="cta"><a class="btn p" href="#download">Download for Windows</a><a class="btn g" href="#features">See what it does</a></div>
+</div>
+
+<div class="stage" role="img" aria-label="Preview of the OpenPlayer window showing a song with synced lyrics, next to the desktop widget and a Discord listening status">
+  <div class="win glass" aria-hidden="true">
+    <div class="side"><b>OpenPlayer</b><span>Home</span><span class="on">Now playing</span><span>Search</span><span>Liked songs</span><span>Queue</span><i>Playlists</i><span>Night drive</span><span>Focus</span></div>
+    <div class="card">
+      <div class="art"></div>
+      <div class="meta"><h3>Slow Static</h3><p>Night Archive</p></div>
+      <div class="bar"><span class="tc">1:11</span><u><i></i></u><span>3:42</span></div>
+      <div class="ctl">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12 18 18V6z"/></svg>
+        <span class="pl"><svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></span>
+        <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM14.5 12 6 18V6z"/></svg>
+      </div>
+    </div>
+    <div class="lyr"><div class="lw" id="lw">
+      <div class="l">Streetlights hum a quiet tune</div><div class="l">Over the river, past the noon</div>
+      <div class="l">I kept your number in my coat</div><div class="l">Tuned the static, found your voice</div>
+      <div class="l">Slow static, slow static</div><div class="l">Carry me home through the dark</div>
+      <div class="l">Until the morning finds the shore</div>
+    </div></div>
+  </div>
+
+  <div class="floats" aria-hidden="true">
+    <div style="position:relative"><span class="cap">Hover for controls</span>
+      <div class="wid glass"><div class="art"></div>
+        <div class="wp glass"><b>Slow Static</b><small>Night Archive</small>
+          <div class="ctl"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12 18 18V6z"/></svg><svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM14.5 12 6 18V6z"/></svg></div>
+        </div>
+      </div>
+    </div>
+    <div class="dc glass"><small>Listening to OpenPlayer</small>
+      <div class="r"><div class="art"></div><div><b>Slow Static</b><p>Night Archive</p></div></div>
+      <div class="bar"><span class="tc">1:11</span><u><i></i></u><span>3:42</span></div>
+    </div>
+  </div>
+</div>
+
+<section id="features"><div class="wrap">
+  <h2>Everything a daily player needs, nothing it doesn't.</h2>
+  <p class="sub">The window stays calm. The work happens underneath.</p>
+  <div class="feats glass">
+    <div><h3>Synced lyrics</h3><p>Lyrics scroll line by line with the song and are found for you. Click any line to jump to it.</p></div>
+    <div><h3>An equalizer you can trust</h3><p>Ten bands, a preamp, a Tame bass preset and a limiter that stops clipping. Switch between stereo and mono.</p></div>
+    <div><h3>Crossfade that behaves</h3><p>Songs blend when they end on their own. When you skip, the next one starts instantly.</p></div>
+    <div><h3>Your files and YouTube Music</h3><p>Drop in your library or search online. Missing covers are found once and kept.</p></div>
+    <div><h3>A widget for your desktop</h3><p>A square cover that floats above your windows. Hover for controls, drag a corner to resize.</p></div>
+    <div><h3>Discord and Spotify</h3><p>Sign in with Discord, show what you're listening to, and bring over Spotify playlists with a link or a CSV.</p></div>
+  </div>
+</div></section>
+
+<section id="download"><div class="wrap">
+  <h2>Download OpenPlayer.</h2>
+  <p class="sub">Version 0.3.0 for Windows 10 and 11, 64-bit.</p>
+  <div class="dl">
+    <div class="glass big"><h3>Installer</h3><p>Installs for your user account only, in the folder you choose. Adds a desktop shortcut.</p><a class="btn p" href="OpenPlayer-Setup-0.3.0.exe" download>Download the installer</a></div>
+    <div class="glass"><h3>Portable</h3><p>One file you can run from anywhere, with nothing to install.</p><a class="btn g" href="OpenPlayer-Portable-0.3.0.exe" download>Download portable</a></div>
+  </div>
+  <p class="fine">OpenPlayer isn't code-signed yet, so Windows SmartScreen may ask you to confirm. Choose More info, then Run anyway. Your library, playlists and settings stay on your computer.</p>
+</div></section>
+</main>
+
+<footer class="wrap">OpenPlayer is an independent project and is not affiliated with YouTube, Discord or Spotify.</footer>
+
+<script>
+// the preview plays itself: lyrics step along, progress moves, glass catches the pointer
+const lw = document.getElementById('lw'), L = [...lw.children], tcs = document.querySelectorAll('.tc'), bars = document.querySelectorAll('.bar u i');
+let a = 2, p = 0.32;
+function show() {
+  L.forEach((el, i) => { el.style.setProperty('--d', Math.abs(i - a)); el.classList.toggle('on', i === a); });
+  lw.style.transform = 'translateY(' + (lw.parentNode.clientHeight * 0.46 - (a * 64 + 32)) + 'px)';
+}
+function tick() {
+  bars.forEach(b => { b.style.width = p * 100 + '%'; });
+  const s = Math.floor(p * 222); tcs.forEach(t => { t.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); });
+}
+show(); tick();
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  setInterval(() => { a = (a + 1) % L.length; show(); }, 2600);
+  setInterval(() => { p = (p + 0.0025) % 1; tick(); }, 100);
+}
+addEventListener('resize', show);
+addEventListener('pointermove', e => document.querySelectorAll('.glass').forEach(g => {
+  const r = g.getBoundingClientRect(); g.style.setProperty('--mx', e.clientX - r.left + 'px'); g.style.setProperty('--my', e.clientY - r.top + 'px');
+}));
+</script>
+</body>
+</html>
