@@ -1,0 +1,59 @@
+{
+  "name": "openplayer",
+  "version": "0.3.0",
+  "description": "OpenPlayer - liquid glass music player",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "fetch-ytdlp": "node scripts/fetch-ytdlp.js",
+    "predist": "node scripts/fetch-ytdlp.js",
+    "dist": "electron-builder --win"
+  },
+  "dependencies": {
+    "music-metadata": "^10.0.0",
+    "youtubei.js": "latest",
+    "@xhayper/discord-rpc": "latest"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "author": "OpenPlayer",
+  "build": {
+    "appId": "com.openplayer.app",
+    "productName": "OpenPlayer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!bin/**",
+      "!yt-dlp.exe",
+      "!scripts/**",
+      "!*.md"
+    ],
+    "extraResources": [
+      {
+        "from": "bin/yt-dlp.exe",
+        "to": "bin/yt-dlp.exe"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    }
+  }
+}
